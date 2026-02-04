@@ -1,5 +1,10 @@
-# Markdown files excluded from version control
-*.md
+# Internal documentation (not for public repo)
+# Keep README.md tracked
+docs/*.md
+DECISIONS.md
+Development.md
+PER_SKU_TRACKER.md
+DATABASE.md
 
 # Dependencies
 node_modules/
