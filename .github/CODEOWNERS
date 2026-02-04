@@ -1,0 +1,24 @@
+# Noon-E-Commerce Code Owners
+# These users will be requested for review when PRs touch these paths
+
+# Default owners for everything
+* @aghaPathan
+
+# Backend / API
+/api/ @aghaPathan
+
+# Frontend
+/frontend-ts/ @aghaPathan
+
+# Infrastructure / DevOps
+/docker/ @aghaPathan
+/.github/ @aghaPathan
+Dockerfile* @aghaPathan
+
+# Data / Scraping
+noon_scraper.py @aghaPathan
+noon_dag.py @aghaPathan
+
+# Documentation
+*.md @aghaPathan
+/docs/ @aghaPathan

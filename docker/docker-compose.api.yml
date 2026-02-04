@@ -1,0 +1,47 @@
+# Noon E-Commerce API - Docker Compose
+# Run: docker-compose -f docker-compose.api.yml up -d
+
+version: '3.8'
+
+services:
+  noon-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    image: noon-api:latest
+    container_name: noon-api
+    restart: unless-stopped
+    network_mode: "host"
+    environment:
+      # PostgreSQL (noon_app database on host)
+      - POSTGRES_HOST=localhost
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=noon_user
+      - POSTGRES_PASSWORD=NoonApp_2026!
+      - POSTGRES_DB=noon_app
+      # ClickHouse (for price history reads)
+      - CLICKHOUSE_HOST=localhost
+      - CLICKHOUSE_PORT=8123
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=Changeme_123
+      - CLICKHOUSE_DB=noon_intelligence
+      # JWT Configuration
+      - JWT_SECRET=noon-jwt-secret-change-in-prod
+      - JWT_EXPIRY_MINUTES=30
+      - REFRESH_TOKEN_EXPIRY_DAYS=7
+      # Rate Limiting
+      - AUTH_RATE_LIMIT=10/minute
+      - LOGIN_RATE_LIMIT=5/minute
+      # API Token (legacy endpoints)
+      - API_TOKEN=noon-api-secret-token
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8096/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

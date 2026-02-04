@@ -1,0 +1,36 @@
+# Noon-E-Commerce API Dependencies
+
+# Web Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# Database
+clickhouse-driver>=0.2.6
+psycopg2-binary>=2.9.9
+
+# Authentication
+passlib[bcrypt]>=1.7.4
+python-jose[cryptography]>=3.3.0
+bcrypt>=4.0.0,<5.0.0  # passlib compat
+
+# Data Validation
+pydantic>=2.5.0
+pydantic[email]>=2.5.0
+
+# Rate Limiting
+slowapi>=0.1.9
+
+# HTTP Client (for testing)
+httpx>=0.26.0
+
+# Development
+pytest>=7.4.0
+pytest-asyncio>=0.23.0
+tenacity>=8.2.0
+prometheus-fastapi-instrumentator>=6.1.0
+
+# OpenTelemetry Tracing
+opentelemetry-api>=1.22.0
+opentelemetry-sdk>=1.22.0
+opentelemetry-instrumentation-fastapi>=0.43b0
+opentelemetry-exporter-otlp>=1.22.0

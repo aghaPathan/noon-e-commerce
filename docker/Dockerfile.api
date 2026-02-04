@@ -1,0 +1,44 @@
+# Noon E-Commerce API Dockerfile
+# Python 3.12 + FastAPI + PostgreSQL/ClickHouse clients
+
+# Pin to specific version for reproducibility (updated 2026-02-04)
+FROM python:3.12.1-slim-bookworm
+
+# Metadata
+LABEL maintainer="Agha Awais"
+LABEL description="Noon E-Commerce Price Tracker API"
+LABEL version="1.0"
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies for psycopg2 and healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev \
+    gcc \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Copy requirements first (layer caching)
+COPY api/requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY api/ .
+
+# Create non-root user for security
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
+
+# Expose port
+EXPOSE 8096
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8096/health || exit 1
+
+# Run uvicorn
+CMD ["uvicorn", "main_v2:app", "--host", "0.0.0.0", "--port", "8096"]

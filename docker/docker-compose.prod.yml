@@ -1,0 +1,63 @@
+# Noon E-Commerce - Production Deployment
+# Run: docker-compose -f docker-compose.prod.yml up -d
+
+version: '3.8'
+
+services:
+  noon-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    image: noon-api:latest
+    container_name: noon-api
+    restart: unless-stopped
+    network_mode: "host"
+    environment:
+      # PostgreSQL
+      - POSTGRES_HOST=${POSTGRES_HOST:-localhost}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_USER=${POSTGRES_USER:-noon_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      - POSTGRES_DB=${POSTGRES_DB:-noon_app}
+      # ClickHouse (optional)
+      - CLICKHOUSE_HOST=${CLICKHOUSE_HOST:-localhost}
+      - CLICKHOUSE_PORT=${CLICKHOUSE_PORT:-8123}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-default}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
+      - CLICKHOUSE_DB=${CLICKHOUSE_DB:-noon_intelligence}
+      # JWT
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET required}
+      - JWT_EXPIRY_MINUTES=${JWT_EXPIRY_MINUTES:-30}
+      - REFRESH_TOKEN_EXPIRY_DAYS=${REFRESH_TOKEN_EXPIRY_DAYS:-7}
+      # Rate Limiting
+      - AUTH_RATE_LIMIT=${AUTH_RATE_LIMIT:-10/minute}
+      - LOGIN_RATE_LIMIT=${LOGIN_RATE_LIMIT:-5/minute}
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8096/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  noon-frontend:
+    image: nginx:alpine
+    container_name: noon-frontend
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    volumes:
+      - ../frontend-ts/dist:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      noon-api:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
