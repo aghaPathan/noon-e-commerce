@@ -24,13 +24,13 @@
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │   Airflow DAG   │────▶│  Noon Scraper   │────▶│   ClickHouse    │
-│   (3 AM UTC)    │     │  (ScraperAPI)   │     │   (Analytics)   │
+│   (3 AM UTC)    │     │  (ScraperAPI)   │     │  (Price History)│
 └─────────────────┘     └─────────────────┘     └────────┬────────┘
                                                          │
-                        ┌─────────────────┐              │
-                        │    FastAPI      │◀─────────────┘
-                        │   :8096/api     │
-                        └────────┬────────┘
+┌─────────────────┐     ┌─────────────────┐              │
+│   PostgreSQL    │◀───▶│    FastAPI      │◀─────────────┘
+│ (Users/Products)│     │   :8096/api     │
+└─────────────────┘     └────────┬────────┘
                                  │
                         ┌────────▼────────┐
                         │  React + Vite   │
@@ -46,7 +46,8 @@
 | Component | Technology |
 |-----------|------------|
 | API Framework | FastAPI 0.109 |
-| Database | ClickHouse (OLAP) |
+| Primary DB | PostgreSQL 16 (users, products, auth) |
+| Analytics DB | ClickHouse (price history, time-series) |
 | Scraping | ScraperAPI + BeautifulSoup4 |
 | Orchestration | Apache Airflow |
 | Validation | Pydantic v2 |

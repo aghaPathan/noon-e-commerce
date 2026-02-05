@@ -34,10 +34,13 @@ from contextlib import contextmanager
 
 # PostgreSQL configuration for noon_app
 PG_HOST = os.environ.get('POSTGRES_HOST', 'localhost')
-PG_PORT = int(os.environ.get('POSTGRES_PORT', '5432'))
+PG_PORT = int(os.environ.get('POSTGRES_PORT', '5433'))
 PG_USER = os.environ.get('POSTGRES_USER', 'noon_user')
-PG_PASSWORD = os.environ.get('POSTGRES_PASSWORD', 'NoonApp_2026!')
+PG_PASSWORD = os.environ.get('POSTGRES_PASSWORD')
 PG_DATABASE = os.environ.get('POSTGRES_DB', 'noon_app')
+
+if not PG_PASSWORD:
+    raise RuntimeError("POSTGRES_PASSWORD environment variable is required")
 
 
 @contextmanager

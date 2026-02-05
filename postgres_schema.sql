@@ -152,7 +152,7 @@ GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO noon_user;
 
 -- ============================================
 -- INSERT DEFAULT ADMIN USER
--- Password: Admin123! (bcrypt hashed)
+-- Password: see ADMIN_PASSWORD in .env
 -- ============================================
 INSERT INTO users (email, password_hash, full_name, role, is_active, email_verified)
 VALUES (

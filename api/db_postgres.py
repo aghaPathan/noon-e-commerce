@@ -15,7 +15,9 @@ from psycopg2.extras import RealDictCursor
 DB_HOST = os.environ.get('POSTGRES_HOST', 'localhost')
 DB_PORT = int(os.environ.get('POSTGRES_PORT', '5432'))
 DB_USER = os.environ.get('POSTGRES_USER', 'noon_user')
-DB_PASSWORD = os.environ.get('POSTGRES_PASSWORD', 'NoonApp_2026!')
+DB_PASSWORD = os.environ.get('POSTGRES_PASSWORD')
+if not DB_PASSWORD:
+    raise RuntimeError("POSTGRES_PASSWORD environment variable is required")
 DB_NAME = os.environ.get('POSTGRES_DB', 'noon_app')
 
 

@@ -46,7 +46,7 @@ def load_skus(**context):
         logger.warning(f"Could not load from Variable: {e}")
     
     # Fallback to file
-    sku_file = '/home/sysadmin/ai-dev-team/workspace/Noon-E-Commerce/skus.txt'
+    sku_file = '/home/sysadmin/workspace/noon-e-commerce/skus.txt'
     try:
         with open(sku_file, 'r') as f:
             skus = [line.strip() for line in f if line.strip()]
@@ -61,7 +61,7 @@ def load_skus(**context):
 def scrape_noon(**context):
     """Scrape Noon.com products using ScraperAPI"""
     import sys
-    sys.path.insert(0, '/home/sysadmin/ai-dev-team/workspace/Noon-E-Commerce')
+    sys.path.insert(0, '/home/sysadmin/workspace/noon-e-commerce')
     
     from noon_scraper import NoonScraper
     
@@ -143,7 +143,7 @@ def load_to_clickhouse(**context):
         host=os.environ.get('CLICKHOUSE_HOST', 'localhost'),
         port=int(os.environ.get('CLICKHOUSE_PORT', 9000)),
         user=os.environ.get('CLICKHOUSE_USER', 'default'),
-        password=os.environ.get('CLICKHOUSE_PASSWORD', 'Changeme_123'),
+        password=os.environ.get('CLICKHOUSE_PASSWORD'),
         database='noon_intelligence'
     )
     

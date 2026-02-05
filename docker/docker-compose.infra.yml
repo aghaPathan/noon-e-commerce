@@ -1,0 +1,64 @@
+# Noon E-Commerce Infrastructure
+# PostgreSQL + ClickHouse for the application
+# Run: docker compose -f docker-compose.infra.yml up -d
+
+services:
+  # PostgreSQL - Primary database for users, products, etc.
+  noon-postgres:
+    image: postgres:16-alpine
+    container_name: noon-postgres
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5433:5432"
+    environment:
+      POSTGRES_USER: noon_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: noon_app
+    volumes:
+      - noon_postgres_data:/var/lib/postgresql/data
+      - ../postgres_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U noon_user -d noon_app"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ClickHouse - Time-series analytics for price history
+  noon-clickhouse:
+    image: clickhouse/clickhouse-server:24.1-alpine
+    container_name: noon-clickhouse
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8123:8123"  # HTTP
+      - "127.0.0.1:9000:9000"  # Native
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD is required}
+      CLICKHOUSE_DB: noon_intelligence
+    volumes:
+      - noon_clickhouse_data:/var/lib/clickhouse
+      - noon_clickhouse_logs:/var/log/clickhouse-server
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  noon_postgres_data:
+  noon_clickhouse_data:
+  noon_clickhouse_logs:

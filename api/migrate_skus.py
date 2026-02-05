@@ -17,7 +17,9 @@ from auth import hash_password
 
 # Configuration
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@noon-ecommerce.local')
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'Admin123!')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
+if not ADMIN_PASSWORD:
+    raise RuntimeError("ADMIN_PASSWORD environment variable is required")
 SKU_FILE_PATH = os.environ.get('SKU_FILE_PATH', '/home/sysadmin/ai-dev-team/workspace/Noon-E-Commerce/skus.txt')
 
 
