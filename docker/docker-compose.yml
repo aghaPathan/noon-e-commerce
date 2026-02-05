@@ -11,16 +11,15 @@ services:
       dockerfile: docker/Dockerfile.api
     container_name: noon-api
     network_mode: host
+    env_file:
+      - .env
     environment:
+      # Override specific settings
       - CLICKHOUSE_HOST=127.0.0.1
       - CLICKHOUSE_PORT=9000
-      - CLICKHOUSE_USER=default
-      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD is required}
-      - CLICKHOUSE_DB=noon_intelligence
-      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
-      - API_TOKEN=${API_TOKEN:?API_TOKEN is required}
+      - POSTGRES_HOST=127.0.0.1
+      - POSTGRES_PORT=5433
       - API_PORT=8096
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3001}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8096/health"]
       interval: 30s
