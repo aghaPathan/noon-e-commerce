@@ -95,14 +95,16 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash"""
+    """Verify a password against its bcrypt hash.
+    
+    Note: Legacy SHA256 fallback removed for security (rainbow table vulnerability).
+    Users with old hashes must reset their password.
+    """
     try:
         return pwd_context.verify(plain_password, hashed_password)
     except Exception:
-        # Handle legacy SHA256 hashes from migration
-        import hashlib
-        legacy_hash = hashlib.sha256(plain_password.encode()).hexdigest()
-        return legacy_hash == hashed_password
+        # Don't fall back to insecure hash verification
+        return False
 
 
 # ============================================

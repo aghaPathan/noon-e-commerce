@@ -13,7 +13,7 @@ from psycopg2.extras import RealDictCursor
 
 # Configuration - noon_app database
 DB_HOST = os.environ.get('POSTGRES_HOST', 'localhost')
-DB_PORT = int(os.environ.get('POSTGRES_PORT', '5432'))
+DB_PORT = int(os.environ.get('POSTGRES_PORT', '5433'))
 DB_USER = os.environ.get('POSTGRES_USER', 'noon_user')
 DB_PASSWORD = os.environ.get('POSTGRES_PASSWORD')
 if not DB_PASSWORD:
