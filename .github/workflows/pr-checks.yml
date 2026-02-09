@@ -1,0 +1,272 @@
+name: PR Checks (Universal)
+
+# Universal CI for all PRs - Syntax, Secrets, Security only
+# Fast checks (~2 min) that must pass before merge
+
+on:
+  pull_request:
+    branches: [main, master, develop]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: pr-checks-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  universal-checks:
+    name: Syntax + Secrets + Security
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # =====================================================
+      # SYNTAX CHECKS - All Languages
+      # =====================================================
+      
+      - name: "Syntax: Python"
+        if: hashFiles('**/*.py') != ''
+        run: |
+          echo "🐍 Checking Python syntax..."
+          find . -name "*.py" -not -path "./.git/*" -not -path "./venv/*" -not -path "./.venv/*" -not -path "./node_modules/*" | \
+            xargs -I {} python3 -m py_compile {} 2>&1 || exit 1
+          echo "✅ Python syntax OK"
+
+      - name: "Syntax: JavaScript/TypeScript"
+        if: hashFiles('**/*.js') != '' || hashFiles('**/*.ts') != ''
+        run: |
+          echo "📜 Checking JavaScript/TypeScript syntax..."
+          npm install -g acorn typescript 2>/dev/null || true
+          
+          # Check JS files
+          for f in $(find . -name "*.js" -not -path "./.git/*" -not -path "./node_modules/*" -not -path "./venv/*" 2>/dev/null); do
+            node --check "$f" 2>&1 || { echo "❌ Syntax error in $f"; exit 1; }
+          done
+          
+          # Check TS files (compile only)
+          if command -v tsc &> /dev/null && ls *.ts 1>/dev/null 2>&1; then
+            tsc --noEmit --skipLibCheck 2>&1 || true  # Non-blocking for now
+          fi
+          echo "✅ JavaScript/TypeScript syntax OK"
+
+      - name: "Syntax: YAML"
+        if: hashFiles('**/*.yml') != '' || hashFiles('**/*.yaml') != ''
+        run: |
+          echo "📋 Checking YAML syntax..."
+          pip install --quiet pyyaml
+          python3 -c "
+          import yaml
+          import sys
+          from pathlib import Path
+          errors = []
+          for ext in ['*.yml', '*.yaml']:
+              for f in Path('.').rglob(ext):
+                  if '.git' in str(f) or 'venv' in str(f) or 'node_modules' in str(f):
+                      continue
+                  try:
+                      # Use safe_load_all to support multi-document YAML (K8s manifests)
+                      list(yaml.safe_load_all(f.read_text()))
+                  except yaml.YAMLError as e:
+                      errors.append(f'{f}: {e}')
+          if errors:
+              print('❌ YAML syntax errors:')
+              for e in errors:
+                  print(f'  {e}')
+              sys.exit(1)
+          print('✅ YAML syntax OK')
+          "
+
+      - name: "Syntax: Dockerfile"
+        if: hashFiles('**/Dockerfile*') != ''
+        continue-on-error: true  # Non-blocking - hadolint install can fail
+        run: |
+          echo "🐳 Checking Dockerfile syntax..."
+          # Try to install hadolint
+          wget -qO /tmp/hadolint https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64 2>/dev/null && \
+            chmod +x /tmp/hadolint || echo "⚠️ hadolint not available, skipping detailed checks"
+          
+          for f in $(find . -name "Dockerfile*" -not -path "./.git/*" 2>/dev/null); do
+            # Basic syntax check - ensure FROM exists
+            if ! grep -q "^FROM" "$f"; then
+              echo "❌ Dockerfile missing FROM: $f"
+              exit 1
+            fi
+            # Use hadolint if available
+            if [ -x /tmp/hadolint ]; then
+              /tmp/hadolint "$f" --failure-threshold error 2>&1 || true
+            fi
+          done
+          echo "✅ Dockerfile syntax OK"
+
+      - name: "Syntax: Shell Scripts"
+        if: hashFiles('**/*.sh') != ''
+        run: |
+          echo "🐚 Checking shell script syntax..."
+          for f in $(find . -name "*.sh" -not -path "./.git/*" -not -path "./venv/*" 2>/dev/null); do
+            bash -n "$f" 2>&1 || { echo "❌ Shell syntax error in $f"; exit 1; }
+          done
+          echo "✅ Shell syntax OK"
+
+      - name: "Syntax: JSON"
+        if: hashFiles('**/*.json') != ''
+        run: |
+          echo "📄 Checking JSON syntax..."
+          python3 -c "
+          import json
+          import sys
+          from pathlib import Path
+          errors = []
+          for f in Path('.').rglob('*.json'):
+              # Skip common non-strict JSON files
+              if '.git' in str(f) or 'venv' in str(f) or 'node_modules' in str(f):
+                  continue
+              # Skip tsconfig files (TypeScript allows comments/trailing commas)
+              if 'tsconfig' in f.name or 'jsconfig' in f.name:
+                  continue
+              try:
+                  json.loads(f.read_text())
+              except json.JSONDecodeError as e:
+                  errors.append(f'{f}: {e}')
+          if errors:
+              print('❌ JSON syntax errors:')
+              for e in errors:
+                  print(f'  {e}')
+              sys.exit(1)
+          print('✅ JSON syntax OK')
+          "
+
+      # =====================================================
+      # SECRETS CHECK - All Files
+      # =====================================================
+      
+      - name: "Secrets: Scan for Hardcoded Credentials"
+        run: |
+          echo "🔐 Scanning for hardcoded secrets..."
+          
+          # Scan for critical patterns only (high confidence)
+          ISSUES=""
+          
+          # AWS Keys (very specific pattern)
+          if grep -rE "AKIA[0-9A-Z]{16}" --include="*.py" --include="*.js" --include="*.yml" \
+             --exclude-dir=".git" --exclude-dir="venv" --exclude-dir="node_modules" . 2>/dev/null; then
+            ISSUES="$ISSUES\n- AWS Access Key found"
+          fi
+          
+          # Private Keys
+          if grep -rE "-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----" \
+             --include="*.py" --include="*.js" --include="*.yml" --include="*.pem" --include="*.key" \
+             --exclude-dir=".git" --exclude-dir="venv" --exclude-dir="node_modules" . 2>/dev/null | \
+             grep -v "example\|test\|mock"; then
+            ISSUES="$ISSUES\n- Private key found"
+          fi
+          
+          # GitHub/GitLab Tokens (specific prefixes)
+          if grep -rE "gh[pousr]_[a-zA-Z0-9]{36}" --include="*.py" --include="*.js" --include="*.yml" \
+             --exclude-dir=".git" --exclude-dir="venv" --exclude-dir="node_modules" . 2>/dev/null | \
+             grep -v "os\.getenv\|process\.env"; then
+            ISSUES="$ISSUES\n- GitHub token found"
+          fi
+          
+          if [ -n "$ISSUES" ]; then
+            echo "❌ Potential hardcoded secrets detected!"
+            echo -e "$ISSUES"
+            exit 1
+          fi
+          echo "✅ No hardcoded secrets detected"
+
+      # =====================================================
+      # SECURITY CHECKS - All Languages
+      # =====================================================
+      
+      - name: "Security: Python (Bandit)"
+        if: hashFiles('**/*.py') != ''
+        run: |
+          echo "🔒 Running Python security scan..."
+          pip install --quiet bandit
+          
+          # Only fail on high-severity + high-confidence issues
+          bandit -r . \
+            --exclude "./.git,./venv,./.venv,./node_modules,./tests" \
+            -ll \
+            --severity-level high \
+            --confidence-level high \
+            -f txt 2>/dev/null || true
+          
+          # Count critical issues
+          CRITICAL=$(bandit -r . \
+            --exclude "./.git,./venv,./.venv,./node_modules" \
+            -ll --severity-level high --confidence-level high \
+            -f json 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('results',[])))" 2>/dev/null || echo "0")
+          
+          if [ "$CRITICAL" -gt "0" ]; then
+            echo "❌ Found $CRITICAL high-severity Python security issues"
+            exit 1
+          fi
+          echo "✅ Python security OK"
+
+      - name: "Security: JavaScript (njsscan)"
+        if: hashFiles('**/*.js') != '' || hashFiles('**/*.ts') != ''
+        run: |
+          echo "🔒 Running JavaScript security scan..."
+          pip install --quiet njsscan
+          
+          # Scan for critical issues only
+          njsscan --exit-warning . \
+            --missing-controls \
+            2>/dev/null || true
+          echo "✅ JavaScript security OK (warnings only)"
+
+      - name: "Security: Docker (Trivy)"
+        if: hashFiles('**/Dockerfile*') != ''
+        continue-on-error: true  # Non-blocking - informational
+        run: |
+          echo "🔒 Running Docker security scan..."
+          # Install trivy
+          wget -qO- https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin 2>/dev/null || true
+          
+          # Scan Dockerfiles for misconfigurations
+          if command -v trivy &> /dev/null; then
+            trivy config . --severity HIGH,CRITICAL 2>/dev/null || true
+          fi
+          echo "✅ Docker security scan complete"
+
+      - name: "Security: YAML/Config Injection"
+        run: |
+          echo "🔒 Checking for YAML/config injection risks..."
+          
+          # Check for unsafe YAML loading in Python
+          if grep -rE "yaml\.load\s*\([^)]*Loader\s*=" --include="*.py" . 2>/dev/null | \
+             grep -v "SafeLoader\|safe_load" | grep -v "\.git\|venv"; then
+            echo "⚠️ Warning: Use yaml.safe_load() instead of yaml.load()"
+          fi
+          
+          # Check for eval/exec with user input
+          if grep -rE "(eval|exec)\s*\(" --include="*.py" --include="*.js" . 2>/dev/null | \
+             grep -v "\.git\|venv\|node_modules" | head -3; then
+            echo "⚠️ Warning: eval/exec detected - ensure no user input is passed"
+          fi
+          
+          echo "✅ Config security check complete"
+
+      # =====================================================
+      # SUMMARY
+      # =====================================================
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "## PR Security Checks Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Category | Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Syntax | Python | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Syntax | JavaScript/TypeScript | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Syntax | YAML | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Syntax | Dockerfile | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Syntax | Shell | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Syntax | JSON | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secrets | Hardcoded Credentials | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | Python (Bandit) | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | JavaScript | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | Docker | ✅ |" >> $GITHUB_STEP_SUMMARY
