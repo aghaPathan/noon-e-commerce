@@ -34,8 +34,8 @@ services:
     container_name: noon-clickhouse
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8123:8123"  # HTTP
-      - "127.0.0.1:9000:9000"  # Native
+      - "0.0.0.0:8123:8123"  # HTTP (external)
+      - "0.0.0.0:9000:9000"  # Native (external)
     environment:
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD is required}
@@ -48,10 +48,35 @@ services:
         soft: 262144
         hard: 262144
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8123/ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Frontend - React/Vite dev server
+  noon-frontend:
+    build:
+      context: ../frontend-ts
+      dockerfile: Dockerfile
+    container_name: noon-frontend
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:3000:3000"
+    volumes:
+      - ../frontend-ts/src:/app/src:ro
+      - ../frontend-ts/public:/app/public:ro
+    environment:
+      - VITE_API_URL=http://76.13.40.226:8096
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     logging:
       driver: "json-file"
       options:

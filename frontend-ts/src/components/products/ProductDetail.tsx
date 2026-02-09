@@ -82,7 +82,7 @@ export function ProductDetail({ product, onClose, onUpdate }: ProductDetailProps
             <div className="bg-gray-50 rounded-lg p-4">
               <p className="text-sm text-gray-500">Target Price</p>
               <p className="font-medium">
-                {product.target_price ? `AED ${product.target_price}` : 'Not set'}
+                {product.target_price ? `SAR ${product.target_price}` : 'Not set'}
               </p>
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
@@ -99,25 +99,25 @@ export function ProductDetail({ product, onClose, onUpdate }: ProductDetailProps
               <div className="bg-blue-50 rounded-lg p-4">
                 <p className="text-sm text-blue-600">Current Price</p>
                 <p className="text-xl font-bold text-blue-700">
-                  AED {priceHistory.current_price?.toFixed(2) || 'N/A'}
+                  SAR {priceHistory.current_price?.toFixed(2) || 'N/A'}
                 </p>
               </div>
               <div className="bg-green-50 rounded-lg p-4">
                 <p className="text-sm text-green-600">Lowest ({days}d)</p>
                 <p className="text-xl font-bold text-green-700">
-                  AED {priceHistory.min_price?.toFixed(2) || 'N/A'}
+                  SAR {priceHistory.min_price?.toFixed(2) || 'N/A'}
                 </p>
               </div>
               <div className="bg-red-50 rounded-lg p-4">
                 <p className="text-sm text-red-600">Highest ({days}d)</p>
                 <p className="text-xl font-bold text-red-700">
-                  AED {priceHistory.max_price?.toFixed(2) || 'N/A'}
+                  SAR {priceHistory.max_price?.toFixed(2) || 'N/A'}
                 </p>
               </div>
               <div className="bg-purple-50 rounded-lg p-4">
                 <p className="text-sm text-purple-600">Average ({days}d)</p>
                 <p className="text-xl font-bold text-purple-700">
-                  AED {priceHistory.avg_price?.toFixed(2) || 'N/A'}
+                  SAR {priceHistory.avg_price?.toFixed(2) || 'N/A'}
                 </p>
               </div>
             </div>

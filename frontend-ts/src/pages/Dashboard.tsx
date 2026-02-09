@@ -233,7 +233,7 @@ export function Dashboard() {
                         </span>
                         {sku.target_price && (
                           <span className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded">
-                            Target: AED {sku.target_price}
+                            Target: SAR {sku.target_price}
                           </span>
                         )}
                       </div>

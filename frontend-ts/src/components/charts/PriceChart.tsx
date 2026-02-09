@@ -56,7 +56,7 @@ export function PriceChart({ history, title, height = 300 }: PriceChartProps) {
       labels,
       datasets: [
         {
-          label: 'Price (AED)',
+          label: 'Price (SAR)',
           data: prices,
           borderColor: 'rgb(59, 130, 246)',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -98,7 +98,7 @@ export function PriceChart({ history, title, height = 300 }: PriceChartProps) {
         callbacks: {
           label: (context: any) => {
             const value = context.parsed.y;
-            return `${context.dataset.label}: AED ${value.toFixed(2)}`;
+            return `${context.dataset.label}: SAR ${value.toFixed(2)}`;
           },
         },
       },
@@ -112,7 +112,7 @@ export function PriceChart({ history, title, height = 300 }: PriceChartProps) {
       y: {
         beginAtZero: false,
         ticks: {
-          callback: (value: any) => `AED ${value}`,
+          callback: (value: any) => `SAR ${value}`,
         },
       },
     },

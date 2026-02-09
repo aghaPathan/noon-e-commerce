@@ -347,8 +347,7 @@ async def get_price_history(
     
     # Try to get price history from ClickHouse
     try:
-        from database import NoonDatabase
-        clickhouse = NoonDatabase()
+        from database import db as clickhouse
         result = clickhouse.get_price_history(sku_code, days)
         
         if result and result.get('history'):

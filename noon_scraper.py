@@ -41,6 +41,10 @@ class ProductData:
     in_stock: bool
     url: str
     scraped_at: datetime
+    # Product metadata
+    brand: Optional[str] = None
+    category: Optional[str] = None
+    image_url: Optional[str] = None
     
     def to_dict(self) -> Dict:
         d = asdict(self)
@@ -150,6 +154,42 @@ class NoonScraper:
                           soup.find(string=lambda t: t and 'out of stock' in t.lower())
             in_stock = out_of_stock is None
             
+            # Brand extraction
+            brand = None
+            brand_match = re.search(r'"brand"\s*:\s*"([^"]+)"', html)
+            if brand_match:
+                brand = brand_match.group(1)
+            else:
+                brand_elem = soup.select_one('[data-qa="pdp-brand"]') or \
+                            soup.select_one('a[class*="brand"]') or \
+                            soup.select_one('.brandName')
+                if brand_elem:
+                    brand = brand_elem.get_text(strip=True)
+            
+            # Category extraction (breadcrumb)
+            category = None
+            cat_match = re.search(r'"category"\s*:\s*"([^"]+)"', html)
+            if cat_match:
+                category = cat_match.group(1)
+            else:
+                breadcrumb = soup.select('nav[aria-label="breadcrumb"] a, .breadcrumb a')
+                if len(breadcrumb) > 1:
+                    # Skip Home, take the main category
+                    category = breadcrumb[1].get_text(strip=True) if len(breadcrumb) > 1 else None
+            
+            # Image URL extraction
+            image_url = None
+            img_match = re.search(r'"image"\s*:\s*"([^"]+)"', html)
+            if img_match:
+                image_url = img_match.group(1)
+            else:
+                img_elem = soup.select_one('[data-qa="pdp-image"] img, .productImage img, img[class*="product"]')
+                if img_elem and img_elem.get('src'):
+                    image_url = img_elem['src']
+                    # Convert relative URLs
+                    if image_url.startswith('//'):
+                        image_url = 'https:' + image_url
+            
             return ProductData(
                 sku=sku,
                 product_name=product_name,
@@ -160,7 +200,10 @@ class NoonScraper:
                 currency='SAR',
                 in_stock=in_stock,
                 url=url,
-                scraped_at=datetime.utcnow()
+                scraped_at=datetime.utcnow(),
+                brand=brand,
+                category=category,
+                image_url=image_url
             )
             
         except Exception as e:

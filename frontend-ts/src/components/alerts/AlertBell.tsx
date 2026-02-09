@@ -155,10 +155,10 @@ export function AlertBell({ onOpenPanel }: AlertBellProps) {
                           {alert.sku}
                         </p>
                         <p className="text-sm">
-                          <span className="text-gray-500">AED {alert.old_price.toFixed(2)}</span>
+                          <span className="text-gray-500">SAR {alert.old_price.toFixed(2)}</span>
                           <span className="mx-1">→</span>
                           <span className={alert.change_pct < 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                            AED {alert.new_price.toFixed(2)} ({alert.change_pct > 0 ? '+' : ''}{alert.change_pct}%)
+                            SAR {alert.new_price.toFixed(2)} ({alert.change_pct > 0 ? '+' : ''}{alert.change_pct}%)
                           </span>
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
